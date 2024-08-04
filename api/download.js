@@ -18,7 +18,7 @@ async function ttdl(url) {
         if (!res.data) return reject("Gagal mengambil data");
         let images = Array.from(res?.data?.matchAll(/https:\/\/d\.tik-cdn\.com\/image([^"]*)/g), match => "https://d.tik-cdn.com/image" + match[1].replace("&amp;", "&"));
         let videos = Array.from(res?.data?.matchAll(/<a\s+onclick="showAd\(\)"\s+href="https:\/\/d\.tik-cdn\.com\/dl\/([^"]*)"/g), match => "https://d.tik-cdn.com/dl/" + match[1].replace("&amp;", "&"));
-        if (!images || !videos) return reject("Gagal mengambil data");
+        if (!images && !videos) return reject("Gagal mengambil data");
         resolve({
           status: true,
           ...((images.length > 0) ? { images } : { videos })
@@ -26,11 +26,15 @@ async function ttdl(url) {
       }).catch(err => reject(err));
     });
   } catch (e) {
-    return { status: false, message: e };
+    return { status: false, message: e.message || e };
   }
 }
 
 module.exports = async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Tambahkan header CORS
+  res.setHeader('Access-Control-Allow-Methods', 'POST');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
   if (req.method !== 'POST') {
     return res.status(405).json({ status: false, message: "Metode tidak diizinkan" });
   }
@@ -44,6 +48,6 @@ module.exports = async (req, res) => {
     const data = await ttdl(url);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ status: false, message: error.message });
+    res.status(500).json({ status: false, message: error.message || error });
   }
 };
